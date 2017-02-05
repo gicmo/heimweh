@@ -1,0 +1,13 @@
+[package]
+name = "heimweh"
+version = "0.0.1"
+authors = ["Christian Kellner <christian@kellner.me>"]
+
+[dependencies]
+git2 = "0.6"
+docopt = "0.7"
+clap = "2.20"
+rustc-serialize = "0.3"
+
+[[bin]]
+name = "hwh"
