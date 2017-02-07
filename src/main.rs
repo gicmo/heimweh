@@ -12,7 +12,7 @@ use clap::{App, ArgMatches, SubCommand};
 
 use git2::build::RepoBuilder;
 
-fn clone_repo(remote: &str, local: &str) -> Result<git2::Repository, git2::Error> {
+fn repo_clone(remote: &str, local: &str) -> Result<git2::Repository, git2::Error> {
     let path = Path::new(local);
     let repo = RepoBuilder::new().clone(remote, path)?;
 
@@ -49,7 +49,7 @@ fn bootstrap(matches: &ArgMatches) -> Result<(), git2::Error> {
     let repo_url = matches.value_of("repository").unwrap();
     let repo_path = matches.value_of("path").unwrap();
 
-    clone_repo(repo_url, repo_path)?;
+    repo_clone(repo_url, repo_path)?;
 
     Ok(())
 }
