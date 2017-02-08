@@ -16,24 +16,23 @@ fn repo_clone(remote: &str, local: &str) -> Result<git2::Repository, git2::Error
     let path = Path::new(local);
     let repo = RepoBuilder::new().clone(remote, path)?;
 
-    {
-        let mut subs = repo.submodules()?;
-        for module in &mut subs {
-            module.init(false)?;
-            let url = module.url().unwrap();
-            let rel_path = module.path();
-            let sub_path = path.join(rel_path);
+    for module in repo.submodules()?.iter_mut() {
 
-            println!("{} [{}]", module.name().unwrap(), path.to_str().unwrap());
+        module.init(false)?;
+        let url = module.url().unwrap();
+        let rel_path = module.path();
+        let sub_path = path.join(rel_path);
 
-            match RepoBuilder::new().clone(url, sub_path.as_path()) {
-                Ok(_) => println!{"ok"},
-                Err(e) => {
-                    println!("E: {}", e);
-                    return Err(e)
-                },
-            }
+        println!("{} [{}]", module.name().unwrap(), path.to_str().unwrap());
+
+        match RepoBuilder::new().clone(url, sub_path.as_path()) {
+            Ok(_) => println!{"ok"},
+            Err(e) => {
+                println!("E: {}", e);
+                return Err(e)
+            },
         }
+
     }
 
     Ok(repo)
