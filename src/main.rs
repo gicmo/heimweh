@@ -1,19 +1,18 @@
 extern crate rustc_serialize;
 extern crate git2;
 extern crate toml;
+
 #[macro_use]
 extern crate clap;
 
-use std::io::prelude::*;
 use std::path::Path;
-use std::fs::File;
-
 use clap::{App, ArgMatches, SubCommand};
-
 use git2::build::RepoBuilder;
 
-fn repo_clone(remote: &str, local: &str) -> Result<git2::Repository, git2::Error> {
-    let path = Path::new(local);
+mod config;
+use config::Config;
+
+fn repo_clone(remote: &str, path: &Path) -> Result<git2::Repository, git2::Error> {
     let repo = RepoBuilder::new().clone(remote, path)?;
 
     for module in repo.submodules()?.iter_mut() {
@@ -46,34 +45,27 @@ const BOOTSTRAP_USAGE: &'static str = "
 
 fn bootstrap(matches: &ArgMatches) -> Result<(), git2::Error> {
     let repo_url = matches.value_of("repository").unwrap();
-    let repo_path = matches.value_of("path").unwrap();
+    let root_path = Path::new(matches.value_of("path").unwrap());
+    let repo_path = root_path.join("root");
 
-    repo_clone(repo_url, repo_path)?;
+    repo_clone(repo_url, repo_path.as_path())?;
+
+    let cfg_path = repo_path.join("home.toml");
+    if ! cfg_path.exists() {
+        return Ok(());
+    }
+
+    let cfg = Config::open(cfg_path.as_path()).map_err(|e| git2::Error::from_str(&e))?;
+
+    for (name, source) in &cfg.castles {
+        let subdir = root_path.join(name);
+        println!("{}: \"{}\"", name, source.url);
+        repo_clone(&source.url, &subdir)?;
+    }
 
     Ok(())
 }
 
-
-#[derive(Debug, RustcDecodable)]
-struct Config {
-    castle: Vec<SourceEntry>,
-}
-
-#[derive(Debug, RustcDecodable)]
-struct SourceEntry {
-    url: String,
-}
-
-fn read_config(path: &str) -> Result<Config, String> {
-    let mut file = File::open(&path).map_err(|_| "Could not open file")?;
-    let mut data = String::new();
-
-    file.read_to_string(&mut data)
-        .map_err(|_| "Could not read file")?;
-
-    let cfg: Config = toml::decode_str(&data).ok_or_else(|| "Invalid config file")?;
-    Ok(cfg)
-}
 
 const MAIN_USAGE: &'static str = "
 -v, --verbose 'show what is going on'
