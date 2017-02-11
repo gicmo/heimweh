@@ -1,9 +1,9 @@
-extern crate rustc_serialize;
-extern crate git2;
-extern crate toml;
-
 #[macro_use]
 extern crate clap;
+
+extern crate git2;
+extern crate rustc_serialize;
+extern crate toml;
 
 use std::path::Path;
 use clap::{App, ArgMatches, SubCommand};
