@@ -100,7 +100,7 @@ const LINKS_USAGE: &'static str = "
 enum LinkType {
     Directory,
     File,
-    Symlink(String),
+    Symlink(PathBuf),
 }
 struct Link {
     path: String,
@@ -108,8 +108,17 @@ struct Link {
     kind: LinkType,
 }
 
+#[cfg(unix)]
+use std::os::unix::ffi::OsStrExt;
+use std::ffi::OsStr;
+
+fn osstr_from_bytes(slice: &[u8]) -> &OsStr {
+    OsStrExt::from_bytes(slice)
+}
+
 fn list_file_in_tree(repo: &git2::Repository, root: &git2::Tree, path: Option<&Path>)
                      -> Result<Vec<Link>, git2::Error> {
+
     let mut res: Vec<Link> = Vec::new();
 
     for entry in root.iter() {
@@ -132,12 +141,22 @@ fn list_file_in_tree(repo: &git2::Repository, root: &git2::Tree, path: Option<&P
                 let mut children = list_file_in_tree(repo, subtree, Some(filepath.as_path()))?;
                 res.append(& mut children);
             }
-            //TODO: Detect symlinks
+
             Some(git2::ObjectType::Blob) => {
+                let kind = if entry.filemode() == 0o120000 {
+                    let obj = entry.to_object(repo).expect("blob object");
+                    let blob = obj.as_blob().expect("A blob");
+                    let content = blob.content();
+                    let content = PathBuf::from(osstr_from_bytes(content));
+                    LinkType::Symlink(content)
+                } else {
+                    LinkType::File
+                };
+
                 res.push(Link {
                     path: pathstr,
                     id: id,
-                    kind: LinkType::File,
+                    kind: kind,
                 });
             }
             _ => {
