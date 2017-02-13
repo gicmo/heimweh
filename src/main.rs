@@ -51,13 +51,34 @@ fn repo_clone(remote: &str, path: &Path) -> Result<git2::Repository, git2::Error
     Ok(repo)
 }
 
+fn extract_name_from_url(url: &str) -> Option<&str> {
+    let pos = url.rfind("/");
+    if pos.is_none() {
+        return None
+    }
+    let mut pos = pos.unwrap() + 1;
+    let mut end = url.len();
+    let name = &url[pos..];
+
+    if name.ends_with(".git") {
+        end = url.len() - 4;
+    }
+
+    if name.starts_with("dot-") {
+        pos += 4;
+    }
+
+    Some(&url[pos..end])
+}
+
 const BOOTSTRAP_USAGE: &'static str = "
 <repository> 'The repository to bootstrap from'
 ";
 
 fn bootstrap(world: &World, matches: &ArgMatches) -> Result<(), git2::Error> {
     let repo_url = matches.value_of("repository").unwrap();
-    let repo_path = world.castles_path().join("root");
+    let name = extract_name_from_url(&repo_url).ok_or(git2::Error::from_str("Invalid url"))?;
+    let repo_path = world.castles_path().join(name);
 
     repo_clone(repo_url, repo_path.as_path())?;
 
