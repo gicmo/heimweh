@@ -14,6 +14,18 @@ use git2::build::RepoBuilder;
 mod config;
 use config::Config;
 
+struct World {
+    root: PathBuf,
+    home: PathBuf,
+}
+
+impl World {
+
+    fn castles_path(&self) -> PathBuf {
+        self.root.join("repos")
+    }
+}
+
 fn repo_clone(remote: &str, path: &Path) -> Result<git2::Repository, git2::Error> {
     let repo = RepoBuilder::new().clone(remote, path)?;
 
@@ -168,16 +180,10 @@ fn list_file_in_tree(repo: &git2::Repository, root: &git2::Tree, path: Option<&P
     Ok(res)
 }
 
-fn show_links(matches: &ArgMatches) -> Result<(), git2::Error> {
-    let name = matches.value_of("castle").unwrap();
-    let mut home = matches
-        .value_of("home")
-        .map(PathBuf::from)
-        .or_else(env::home_dir)
-        .unwrap();
 
-    home.push(".homesick");
-    home.push("repos");
+fn show_links(world: &World, matches: &ArgMatches) -> Result<(), git2::Error> {
+    let name = matches.value_of("castle").unwrap();
+    let mut home = world.castles_path();
     home.push(name);
 
     let repo = git2::Repository::open(home)?;
@@ -201,8 +207,9 @@ fn show_links(matches: &ArgMatches) -> Result<(), git2::Error> {
 }
 
 const MAIN_USAGE: &'static str = "
--H, --home    'use this path instead of the home directory'
--v, --verbose 'show what is going on'
+-H, --home=[DIRECTORY] 'use this path instead of the home directory'
+-R, --root=[DIRECTORY] 'root of our world, i.e. where all things are'
+-v, --verbose          'show what is going on'
 ";
 
 fn main() {
@@ -219,9 +226,25 @@ fn main() {
                     .args_from_usage(LINKS_USAGE))
         .get_matches();
 
+    let home = matches
+        .value_of("home")
+        .map(PathBuf::from)
+        .or_else(env::home_dir)
+        .expect("could not determine home folder");
+
+    let root = matches
+        .value_of("root")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| home.join(".homesick"));
+
+    let world = World {
+        home: home,
+        root: root,
+    };
+
     let res = match matches.subcommand() {
         ("bootstrap", Some(submatches)) => bootstrap(submatches),
-        ("links", Some(submatches)) => show_links(submatches),
+        ("links", Some(submatches)) => show_links(&world, submatches),
         ("", None)   => Err(git2::Error::from_str("Need command")),
         _            => unreachable!(),
     };
