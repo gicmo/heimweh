@@ -51,16 +51,13 @@ fn repo_clone(remote: &str, path: &Path) -> Result<git2::Repository, git2::Error
     Ok(repo)
 }
 
-
 const BOOTSTRAP_USAGE: &'static str = "
 <repository> 'The repository to bootstrap from'
-<path> 'The local path'
 ";
 
-fn bootstrap(matches: &ArgMatches) -> Result<(), git2::Error> {
+fn bootstrap(world: &World, matches: &ArgMatches) -> Result<(), git2::Error> {
     let repo_url = matches.value_of("repository").unwrap();
-    let root_path = Path::new(matches.value_of("path").unwrap());
-    let repo_path = root_path.join("root");
+    let repo_path = world.castles_path().join("root");
 
     repo_clone(repo_url, repo_path.as_path())?;
 
@@ -72,7 +69,7 @@ fn bootstrap(matches: &ArgMatches) -> Result<(), git2::Error> {
     let cfg = Config::open(cfg_path.as_path()).map_err(|e| git2::Error::from_str(&e))?;
 
     for (name, source) in &cfg.castles {
-        let subdir = root_path.join(name);
+        let subdir = world.castles_path().join(name);
         println!("{}: \"{}\"", name, source.url);
         repo_clone(&source.url, &subdir)?;
     }
@@ -243,7 +240,7 @@ fn main() {
     };
 
     let res = match matches.subcommand() {
-        ("bootstrap", Some(submatches)) => bootstrap(submatches),
+        ("bootstrap", Some(submatches)) => bootstrap(&world, submatches),
         ("links", Some(submatches)) => show_links(&world, submatches),
         ("", None)   => Err(git2::Error::from_str("Need command")),
         _            => unreachable!(),
