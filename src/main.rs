@@ -122,10 +122,6 @@ fn list_files(dir: &Path) -> io::Result<Vec<DirEntry>> {
 }
 
 
-const LINKS_USAGE: &'static str = "
-<castle> 'The castle to show the links for'
-";
-
 #[derive(Debug)]
 enum LinkType {
     Directory,
@@ -199,6 +195,10 @@ fn list_file_in_tree(repo: &git2::Repository, root: &git2::Tree, path: Option<&P
 }
 
 
+const LINKS_USAGE: &'static str = "
+<castle> 'The castle to show the links for'
+";
+
 fn show_links(world: &World, matches: &ArgMatches) -> Result<(), git2::Error> {
     let name = matches.value_of("castle").unwrap();
     let mut home = world.castles_path();
@@ -223,6 +223,8 @@ fn show_links(world: &World, matches: &ArgMatches) -> Result<(), git2::Error> {
 
     Ok(())
 }
+
+
 
 const MAIN_USAGE: &'static str = "
 -H, --home=[DIRECTORY] 'use this path instead of the home directory'
