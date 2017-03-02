@@ -8,3 +8,11 @@ rust:
 matrix:
   allow_failures:
     - rust: nightly
+
+# need cmake for libssh2-sys
+addons:
+  apt:
+    sources:
+      - kalakris-cmake
+    packages:
+      - cmake
