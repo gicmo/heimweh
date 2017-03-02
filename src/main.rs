@@ -121,6 +121,24 @@ fn list_files(dir: &Path) -> io::Result<Vec<DirEntry>> {
     Ok(res)
 }
 
+fn list_dirs(dir: &Path) -> io::Result<Vec<DirEntry>> {
+    let mut res: Vec<DirEntry> = Vec::new();
+
+    if ! dir.is_dir() {
+        return Ok(res)
+    }
+
+    for entry in fs::read_dir(dir)? {
+        let entry = entry?;
+        let path = entry.path();
+
+        if path.is_dir() {
+            res.push(entry);
+        }
+    }
+
+    Ok(res)
+}
 
 #[derive(Debug)]
 enum LinkType {
@@ -224,7 +242,22 @@ fn show_links(world: &World, matches: &ArgMatches) -> Result<(), git2::Error> {
     Ok(())
 }
 
+const LIST_USAGE: &'static str = "
+";
 
+fn cmd_list(world: &World, matches: &ArgMatches) -> Result<(), git2::Error> {
+    let home = world.castles_path();
+    println!("listing...{:?}", home);
+    let mut files = list_dirs(&home).map_err(|e| git2::Error::from_str("could not list files"))?;
+    files.retain(|ref i| i.metadata().map(|m| m.is_dir()).unwrap_or(false));
+    for f in files {
+        if let Some(name) = f.path().file_name() {
+            println!("{:?}", name);
+        }
+    }
+
+    Ok(())
+}
 
 const MAIN_USAGE: &'static str = "
 -H, --home=[DIRECTORY] 'use this path instead of the home directory'
@@ -244,6 +277,8 @@ fn main() {
                     .args_from_usage(BOOTSTRAP_USAGE))
         .subcommand(SubCommand::with_name("links")
                     .args_from_usage(LINKS_USAGE))
+        .subcommand(SubCommand::with_name("list")
+                    .args_from_usage(LIST_USAGE))
         .get_matches();
 
     let home = matches
@@ -265,6 +300,7 @@ fn main() {
     let res = match matches.subcommand() {
         ("bootstrap", Some(submatches)) => bootstrap(&world, submatches),
         ("links", Some(submatches)) => show_links(&world, submatches),
+        ("list", Some(submatches)) => cmd_list(&world, submatches),
         ("", None)   => Err(git2::Error::from_str("Need command")),
         _            => unreachable!(),
     };
