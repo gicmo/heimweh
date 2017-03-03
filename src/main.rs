@@ -242,6 +242,7 @@ const LIST_USAGE: &'static str = "
 fn cmd_list(world: &World, matches: &ArgMatches) -> Result<(), git2::Error> {
     let home = world.castles_path();
     println!("listing...{:?}", home);
+
     let files = world.castles().map_err(|e| git2::Error::from_str(&e))?;
 
     for f in files {
