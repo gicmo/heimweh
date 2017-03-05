@@ -115,28 +115,6 @@ fn bootstrap(world: &World, matches: &ArgMatches) -> Result<(), git2::Error> {
 }
 
 
-fn list_files(dir: &Path) -> io::Result<Vec<DirEntry>> {
-    let mut res: Vec<DirEntry> = Vec::new();
-
-    if ! dir.is_dir() {
-        return Ok(res)
-    }
-
-    for entry in fs::read_dir(dir)? {
-        let entry = entry?;
-        let path = entry.path();
-
-        res.push(entry);
-
-        if path.is_dir() {
-            let mut children = list_files(&path)?;
-            res.append(& mut children);
-        }
-    }
-
-    Ok(res)
-}
-
 fn list_dirs(dir: &Path) -> io::Result<Vec<DirEntry>> {
     let mut res: Vec<DirEntry> = Vec::new();
 
