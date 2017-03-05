@@ -14,6 +14,9 @@ use git2::build::RepoBuilder;
 mod config;
 use config::Config;
 
+mod castle;
+use castle::Castle;
+
 struct World {
     root: PathBuf,
     home: PathBuf,
@@ -23,6 +26,12 @@ impl World {
 
     fn castles_path(&self) -> PathBuf {
         self.root.join("repos")
+    }
+
+    fn castles(&self) -> Result<Vec<Castle>, String> {
+        let files = list_dirs(&self.castles_path()).map_err(|_| "Could not list castles")?;
+        let castles: Vec<Castle> = files.iter().map(|entry| Castle::new_for_path(entry.path())).collect();
+        Ok(castles)
     }
 }
 
