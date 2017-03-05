@@ -30,8 +30,15 @@ impl World {
 
     fn castles(&self) -> Result<Vec<Castle>, String> {
         let files = list_dirs(&self.castles_path()).map_err(|_| "Could not list castles")?;
-        let castles: Vec<Castle> = files.iter().map(|entry| Castle::new_for_path(entry.path())).collect();
-        Ok(castles)
+        let (castles, fails): (Vec<Result<Castle,String>>, Vec<Result<Castle,String>>) = files
+            .into_iter().map(|entry| Castle::new_for_path(entry.path()))
+            .partition(|ref r| r.is_ok());
+
+        for f in fails {
+            println!("Failed to open castle: {}", f.err().unwrap());
+        }
+
+        Ok(castles.into_iter().map(|x| x.unwrap()).collect())
     }
 }
 
