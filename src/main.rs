@@ -176,6 +176,24 @@ fn cmd_list(world: &World, matches: &ArgMatches) -> Result<(), git2::Error> {
     Ok(())
 }
 
+const LINK_USAGE: &'static str = "
+[castles]... 'The castles to link the files in'
+";
+
+fn cmd_link(world: &World, matches: &ArgMatches) -> Result<(), git2::Error> {
+    let home = world.castles_path();
+    if let Some(castels) = matches.values_of("castles") {
+        for c in castels {
+            println!("{}", c);
+        }
+    } else {
+        let files = list_dirs(&home).map_err(|_| git2::Error::from_str("could not list castles"))?;
+
+    }
+
+    Ok(())
+}
+
 const MAIN_USAGE: &'static str = "
 -H, --home=[DIRECTORY] 'use this path instead of the home directory'
 -R, --root=[DIRECTORY] 'root of our world, i.e. where all things are'
@@ -196,6 +214,8 @@ fn main() {
                     .args_from_usage(LINKS_USAGE))
         .subcommand(SubCommand::with_name("list")
                     .args_from_usage(LIST_USAGE))
+        .subcommand(SubCommand::with_name("link")
+                    .args_from_usage(LINK_USAGE))
         .get_matches();
 
     let home = matches
@@ -218,6 +238,7 @@ fn main() {
         ("bootstrap", Some(submatches)) => bootstrap(&world, submatches),
         ("links", Some(submatches)) => show_links(&world, submatches),
         ("list", Some(submatches)) => cmd_list(&world, submatches),
+        ("link", Some(submatches)) => cmd_link(&world, submatches),
         ("", None)   => Err(git2::Error::from_str("Need command")),
         _            => unreachable!(),
     };
