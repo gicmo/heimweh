@@ -40,6 +40,12 @@ impl World {
 
         Ok(castles.into_iter().map(|x| x.unwrap()).collect())
     }
+
+    fn castle_for_name(&self, name: &str) -> Result<Castle, String> {
+        let mut home = self.castles_path();
+        home.push(name);
+        Castle::new_for_path(home)
+    }
 }
 
 fn repo_clone(remote: &str, path: &Path) -> Result<git2::Repository, git2::Error> {
