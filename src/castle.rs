@@ -1,9 +1,9 @@
 
-use std::fmt;
 use std::path::{Path, PathBuf};
 use std::ffi::OsStr;
 
 extern crate git2;
+
 
 pub struct Castle {
     repo: git2::Repository,
