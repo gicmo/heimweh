@@ -140,78 +140,6 @@ fn list_dirs(dir: &Path) -> io::Result<Vec<DirEntry>> {
     Ok(res)
 }
 
-#[derive(Debug)]
-enum LinkType {
-    Directory,
-    File,
-    Symlink(PathBuf),
-}
-struct Link {
-    path: String,
-    id: git2::Oid,
-    kind: LinkType,
-}
-
-#[cfg(unix)]
-use std::os::unix::ffi::OsStrExt;
-use std::ffi::OsStr;
-
-fn osstr_from_bytes(slice: &[u8]) -> &OsStr {
-    OsStrExt::from_bytes(slice)
-}
-
-fn list_file_in_tree(repo: &git2::Repository, root: &git2::Tree, path: Option<&Path>)
-                     -> Result<Vec<Link>, git2::Error> {
-
-    let mut res: Vec<Link> = Vec::new();
-
-    for entry in root.iter() {
-        let id = entry.id();
-        let kind = entry.kind();
-        let name = entry.name().expect("TreeEntry needs a name");
-        let filepath = path.unwrap_or(Path::new("/")).join(name);
-        let pathstr = filepath.to_str().expect("A string").to_string();
-
-        match kind {
-            Some(git2::ObjectType::Tree) => {
-                let obj = entry.to_object(repo).expect("tree object");
-                let subtree = obj.as_tree().expect("A tree");
-                res.push(Link {
-                    path: pathstr,
-                    id: id,
-                    kind: LinkType::Directory,
-                });
-
-                let mut children = list_file_in_tree(repo, subtree, Some(filepath.as_path()))?;
-                res.append(& mut children);
-            }
-
-            Some(git2::ObjectType::Blob) => {
-                let kind = if entry.filemode() == 0o120000 {
-                    let obj = entry.to_object(repo).expect("blob object");
-                    let blob = obj.as_blob().expect("A blob");
-                    let content = blob.content();
-                    let content = PathBuf::from(osstr_from_bytes(content));
-                    LinkType::Symlink(content)
-                } else {
-                    LinkType::File
-                };
-
-                res.push(Link {
-                    path: pathstr,
-                    id: id,
-                    kind: kind,
-                });
-            }
-            _ => {
-                println!("Unexpected kind in Tree: {:?}", kind);
-            }
-        }
-    }
-
-    Ok(res)
-}
-
 
 const LINKS_USAGE: &'static str = "
 <castle> 'The castle to show the links for'
@@ -219,21 +147,9 @@ const LINKS_USAGE: &'static str = "
 
 fn show_links(world: &World, matches: &ArgMatches) -> Result<(), git2::Error> {
     let name = matches.value_of("castle").unwrap();
-    let mut home = world.castles_path();
-    home.push(name);
+    let castle = world.castle_for_name(name).map_err(|e| git2::Error::from_str(&e))?;
 
-    let repo = git2::Repository::open(home)?;
-    let head = repo.head()?.resolve()?.target().unwrap();
-    let commit = repo.find_commit(head)?;
-    let root = commit.tree()?;
-
-    let bobj = root.get_name("home")
-        .ok_or(git2::Error::from_str("no 'home' dir found in castle"))?
-        .to_object(&repo).expect("tree object");
-
-    let bridge = bobj.as_tree().expect("A tree");
-
-    let files = list_file_in_tree(&repo, &bridge, None)?;
+    let files = castle.links().map_err(|e| git2::Error::from_str(&e))?;
 
     for f in files {
         println!("{} [{:?}] {}", f.path, f.kind, f.id);
