@@ -74,7 +74,7 @@ fn list_file_in_tree(repo: &git2::Repository, root: &git2::Tree, path: Option<&P
         let id = entry.id();
         let kind = entry.kind();
         let name = entry.name().expect("TreeEntry needs a name");
-        let filepath = path.unwrap_or(Path::new("/")).join(name);
+        let filepath = path.map(|p| p.join(name)).unwrap_or(PathBuf::from(name));
         let pathstr = filepath.to_str().expect("A string").to_string();
 
         match kind {
