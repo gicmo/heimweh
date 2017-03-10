@@ -49,6 +49,8 @@ pub enum LinkType {
     File,
     Symlink(PathBuf),
 }
+
+#[derive(Debug)]
 pub struct Link {
     pub path: String,
     pub id: git2::Oid,
