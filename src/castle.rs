@@ -31,6 +31,11 @@ impl Castle {
         list_file_in_tree(&self.repo, bridge, None).map_err(|e| format!("git error: {}", e))
     }
 
+    pub fn resolve_link(&self, link: &Link) -> PathBuf {
+        let wdir = self.repo.workdir().expect("Could not obtain workdir for castle");
+        wdir.join("home").join(&link.path)
+    }
+
     fn tree_for_head(&self) -> Result<git2::Tree, git2::Error> {
         let head = self.repo.head()?.resolve()?.target().unwrap();
         let commit = self.repo.find_commit(head)?;
