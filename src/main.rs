@@ -42,9 +42,7 @@ impl World {
     }
 
     fn castle_for_name(&self, name: &str) -> Result<Castle, String> {
-        let mut home = self.castles_path();
-        home.push(name);
-        Castle::new_for_path(home)
+        Castle::new_for_path(self.castles_path().join(name))
     }
 }
 
