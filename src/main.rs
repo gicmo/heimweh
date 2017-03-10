@@ -44,6 +44,12 @@ impl World {
     fn castle_for_name(&self, name: &str) -> Result<Castle, String> {
         Castle::new_for_path(self.castles_path().join(name))
     }
+
+    fn resolve_target(&self, target: &str) -> Result<PathBuf, String> {
+        println!("{:?}", self.home.as_path().join(target));
+        Ok(self.home.as_path().join(target))
+    }
+
 }
 
 fn repo_clone(remote: &str, path: &Path) -> Result<git2::Repository, git2::Error> {
