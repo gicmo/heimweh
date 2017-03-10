@@ -181,14 +181,19 @@ const LINK_USAGE: &'static str = "
 ";
 
 fn cmd_link(world: &World, matches: &ArgMatches) -> Result<(), git2::Error> {
-    let home = world.castles_path();
-    if let Some(castels) = matches.values_of("castles") {
-        for c in castels {
-            println!("{}", c);
+    let castles = if let Some(names) = matches.values_of("castles") {
+        let mut castles: Vec<Castle> = Vec::new();
+        for name in names {
+            let c = world.castle_for_name(name).map_err(|e| git2::Error::from_str(&e))?;
+            castles.push(c)
         }
+        castles
     } else {
-        let files = list_dirs(&home).map_err(|_| git2::Error::from_str("could not list castles"))?;
+        world.castles().map_err(|e| git2::Error::from_str(&e))?
+    };
 
+    for castle in castles {
+        println!("{:?}", castle.name())
     }
 
     Ok(())
