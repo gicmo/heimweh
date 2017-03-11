@@ -1,4 +1,5 @@
 
+use std::io::{self};
 use std::path::{Path, PathBuf};
 use std::ffi::OsStr;
 
@@ -41,6 +42,12 @@ impl Castle {
         let commit = self.repo.find_commit(head)?;
         commit.tree()
     }
+
+    pub fn resolve_path<P: AsRef<Path>>(&self, path: P) -> io::Result<PathBuf> {
+        let wdir = self.repo.workdir().expect("Could not obtain workdir for castle");
+        wdir.join("home").join(path).canonicalize()
+    }
+
 }
 
 #[derive(Debug)]
