@@ -15,7 +15,7 @@ mod config;
 use config::Config;
 
 mod castle;
-use castle::Castle;
+use castle::{Castle, LinkType};
 
 struct World {
     root: PathBuf,
@@ -49,15 +49,15 @@ impl World {
         Ok(self.home.as_path().join(target))
     }
 
-    fn stat<P: AsRef<Path>>(&self, target: P) -> Result<castle::LinkType, String> {
+    fn stat<P: AsRef<Path>>(&self, target: P) -> Result<LinkType, String> {
         let metadata = target.as_ref().symlink_metadata().map_err(|_| "Could not stat file")?;
         let link = if metadata.is_dir() {
-            castle::LinkType::Directory
+            LinkType::Directory
         } else if metadata.file_type().is_symlink() {
             let target = target.as_ref().read_link().map_err(|_| "Could not read link")?;
-            castle::LinkType::Symlink(target)
+            LinkType::Symlink(target)
         } else {
-            castle::LinkType::File
+            LinkType::File
         };
 
         Ok(link)
