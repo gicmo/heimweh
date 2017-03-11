@@ -7,6 +7,7 @@ extern crate toml;
 
 use std::path::{Path, PathBuf};
 use std::fs::{self, DirEntry};
+use std::os::unix;
 use std::{io, env};
 use clap::{App, ArgMatches, SubCommand};
 use git2::build::RepoBuilder;
@@ -196,6 +197,42 @@ const LINK_USAGE: &'static str = "
 [castles]... 'The castles to link the files in'
 ";
 
+fn link_one(world: &World, castle: &Castle, link: &castle::Link) -> Result<(), String> {
+    let target = world.resolve_target(&link.path)?;
+
+    let res = match &link.kind {
+        &LinkType::Directory => fs::create_dir(&target),
+        &LinkType::File => {
+            let source = castle.resolve_link(&link);
+            unix::fs::symlink(&source, &target)
+        },
+        &LinkType::Symlink(ref sl) => {
+            let source = castle.resolve_path(sl);
+            source.and_then(|ref p| unix::fs::symlink(p, &target))
+        }
+    };
+
+    match res {
+        Err(ref e) if e.kind() == io::ErrorKind::AlreadyExists => {
+            let ttype = world.stat(&target)?;
+            println!("\t {:?} {:?} {:?}", link, target, ttype);
+
+            match (&link.kind, &ttype) {
+                (&LinkType::Directory, &LinkType::Directory) => {
+                    Ok(())
+                },
+                _ => {
+                    println!("Handle me: {:?}", (&link.kind, ttype));
+                    Ok(())
+                }
+            }
+        }
+        Err(_) => Err(String::from("Could not create link")),
+        Ok(()) => Ok(())
+    }
+}
+
+
 fn cmd_link(world: &World, matches: &ArgMatches) -> Result<(), git2::Error> {
     let castles = if let Some(names) = matches.values_of("castles") {
         let mut castles: Vec<Castle> = Vec::new();
@@ -209,7 +246,23 @@ fn cmd_link(world: &World, matches: &ArgMatches) -> Result<(), git2::Error> {
     };
 
     for castle in castles {
-        println!("{:?}", castle.name())
+        let links = match castle.links() {
+            Ok(links) => links,
+            Err(_) => {
+                println!("No links in castle {:?}. Skipping", castle.name());
+                continue
+            }
+        };
+
+        println!("{:?}", castle.name());
+        for link in links {
+            println!("\t linking: {:?}", link);
+            let res = link_one(world, &castle, &link);
+            if let Some(ref e) = res.err() {
+                println!("Could not link: {}", e);
+            }
+
+        }
     }
 
     Ok(())
