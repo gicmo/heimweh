@@ -64,6 +64,22 @@ pub struct Link {
     pub kind: LinkType,
 }
 
+impl Link {
+
+    pub fn target(&self) -> PathBuf {
+        match &self.kind {
+            &LinkType::File | &LinkType::Directory => {
+                PathBuf::from(&self.path)
+            },
+            &LinkType::Symlink(ref l) => {
+                let p = PathBuf::from(&self.path);
+                let p = p.parent().unwrap_or(Path::new("."));
+                p.join(l)
+            }
+        }
+    }
+}
+
 #[cfg(unix)]
 use std::os::unix::ffi::OsStrExt;
 
