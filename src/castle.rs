@@ -34,7 +34,7 @@ impl Castle {
 
     pub fn resolve_link(&self, link: &Link) -> PathBuf {
         let wdir = self.repo.workdir().expect("Could not obtain workdir for castle");
-        wdir.join("home").join(&link.path)
+        wdir.join("home").join(&link.target())
     }
 
     fn tree_for_head(&self) -> Result<git2::Tree, git2::Error> {
