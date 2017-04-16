@@ -200,16 +200,11 @@ const LINK_USAGE: &'static str = "
 fn link_one(world: &World, castle: &Castle, link: &castle::Link) -> Result<(), String> {
     let target = world.resolve_target(&link.path)?;
 
-    let res = match &link.kind {
-        &LinkType::Directory => fs::create_dir(&target),
-        &LinkType::File => {
-            let source = castle.resolve_link(&link);
-            unix::fs::symlink(&source, &target)
-        },
-        &LinkType::Symlink(ref sl) => {
-            let source = castle.resolve_path(sl);
-            source.and_then(|ref p| unix::fs::symlink(p, &target))
-        }
+    let res = if link.is_dir() {
+        fs::create_dir(&target)
+    } else {
+        let source = castle.resolve_link(&link);
+        source.and_then(|ref p| unix::fs::symlink(p, &target))
     };
 
     match res {
