@@ -78,6 +78,13 @@ impl Link {
             }
         }
     }
+
+    pub fn is_dir(&self) -> bool {
+        match &self.kind {
+            &LinkType::Directory => true,
+            _ => false
+        }
+    }
 }
 
 #[cfg(unix)]
