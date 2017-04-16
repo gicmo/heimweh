@@ -55,7 +55,7 @@ impl World {
         let link = if metadata.is_dir() {
             LinkType::Directory
         } else if metadata.file_type().is_symlink() {
-            let target = target.as_ref().read_link().map_err(|_| "Could not read link")?;
+            let target = target.as_ref().canonicalize().map_err(|_| "Could not read link")?;
             LinkType::Symlink(target)
         } else {
             LinkType::File
