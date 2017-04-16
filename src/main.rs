@@ -199,25 +199,31 @@ const LINK_USAGE: &'static str = "
 
 fn link_one(world: &World, castle: &Castle, link: &castle::Link) -> Result<(), String> {
     let target = world.resolve_target(&link.path)?;
+    let source = castle.resolve_link(&link).expect("invalid Link in castle");
 
     let res = if link.is_dir() {
         fs::create_dir(&target)
     } else {
-        let source = castle.resolve_link(&link);
-        source.and_then(|ref p| unix::fs::symlink(p, &target))
+        unix::fs::symlink(&source, &target)
     };
 
     match res {
         Err(ref e) if e.kind() == io::ErrorKind::AlreadyExists => {
             let ttype = world.stat(&target)?;
-            println!("\t {:?} {:?} {:?}", link, target, ttype);
 
             match (&link.kind, &ttype) {
                 (&LinkType::Directory, &LinkType::Directory) => {
                     Ok(())
                 },
+                (&LinkType::Symlink(_), &LinkType::Symlink(ref have)) => {
+                    if source == have.as_path() {
+                        Ok(())
+                    } else {
+                        Err(String::from("Would overwrite symlink"))
+                    }
+                },
                 _ => {
-                    println!("Handle me: {:?}", (&link.kind, ttype));
+                    println!("Handle me: {:?}", (&link.kind, &ttype));
                     Ok(())
                 }
             }
