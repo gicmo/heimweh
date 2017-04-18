@@ -218,6 +218,8 @@ fn link_one(world: &World, castle: &Castle, link: &castle::Link) -> Result<(), S
                 (&LinkType::Symlink(_), &LinkType::Symlink(ref have)) => {
                     if source == have.as_path() {
                         Ok(())
+                    } else if castle.path_is_inside(have) {
+                        Err(String::from("Remove dest, try again"))
                     } else {
                         Err(String::from("Would overwrite symlink"))
                     }
