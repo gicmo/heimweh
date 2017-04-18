@@ -47,6 +47,11 @@ impl Castle {
         wdir.join("home").join(path).canonicalize()
     }
 
+    pub fn path_is_inside<P: AsRef<Path>>(&self, path: P) -> bool {
+        let wdir = self.repo.workdir().expect("Could not obtain workdir for castle");
+        return path.as_ref().starts_with(wdir)
+    }
+
 }
 
 #[derive(Debug)]
